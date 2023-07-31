@@ -4,7 +4,7 @@ from threading import Thread
 from time import sleep
 
 from PIL import ImageGrab
-from PyQt5.QtCore import Qt
+from PyQt5.QtCore import Qt, QEvent
 from PyQt5.QtWidgets import *
 from pynput import keyboard, mouse
 
@@ -32,6 +32,23 @@ class ActivityTrackerGUI(QMainWindow):
 
         self.setWindowTitle("Activity Tracker")
         self.setWindowFlags(Qt.WindowStaysOnTopHint)
+
+        self.tray_icon = QSystemTrayIcon(self)
+        self.tray_icon.setIcon(self.style().standardIcon(QStyle.SP_ComputerIcon))
+        show_action = QAction("Show", self)
+        hide_action = QAction("Hide", self)
+        self.stop_action = QAction("Start Tracking", self)
+        show_action.triggered.connect(self.show)
+        hide_action.triggered.connect(self.hide)
+        self.stop_action.triggered.connect(self.on_track_btn_click)
+
+        tray_menu = QMenu()
+        tray_menu.addAction(show_action)
+        tray_menu.addAction(hide_action)
+        tray_menu.addAction(self.stop_action)
+        self.tray_icon.setContextMenu(tray_menu)
+        self.tray_icon.show()
+
         # self.setFixedSize(int(self.screen_width / 3), int(self.screen_height / 3))
         self.design_layout()
         pass
@@ -64,6 +81,7 @@ class ActivityTrackerGUI(QMainWindow):
     def on_track_btn_click(self):
         if not self.track_activity:
             self.track_button.setText("Stop Tracking")
+            self.stop_action.setText("Stop Tracking")
             self.track_activity = True
             self.screenshot_checkbox.setEnabled(False)
             self.keyboard_checkbox.setEnabled(False)
@@ -72,6 +90,7 @@ class ActivityTrackerGUI(QMainWindow):
             self.on_start_tracking()
         else:
             self.track_button.setText("Start Tracking")
+            self.stop_action.setText("Start Tracking")
             self.track_activity = False
             self.screenshot_checkbox.setEnabled(True)
             self.keyboard_checkbox.setEnabled(True)
@@ -190,3 +209,10 @@ class ActivityTrackerGUI(QMainWindow):
         path = QFileDialog.getExistingDirectory(self, "Select Directory")
         directoryPathLineEdit.setText(path)
         pass
+
+    def changeEvent(self, event):
+        if event.type() == QEvent.WindowStateChange:
+            if self.windowState() & Qt.WindowMinimized:
+                self.hide()
+                pass
+            pass
