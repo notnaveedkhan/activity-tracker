@@ -27,6 +27,7 @@ class ActivityTrackerGUI(QMainWindow):
         self.screenshot_checkbox = None
         self.keyboard_checkbox = None
         self.mouse_checkbox = None
+        self.mouse_and_screenshot_checkbox = None
         self.browse_button = None
         self.track_button = None
 
@@ -49,7 +50,6 @@ class ActivityTrackerGUI(QMainWindow):
         self.tray_icon.setContextMenu(tray_menu)
         self.tray_icon.show()
 
-        # self.setFixedSize(int(self.screen_width / 3), int(self.screen_height / 3))
         self.design_layout()
         pass
 
@@ -65,7 +65,8 @@ class ActivityTrackerGUI(QMainWindow):
 
         self.screenshot_checkbox = QCheckBox("Take Random Screenshots")
         self.keyboard_checkbox = QCheckBox("Track Keyboard Activity")
-        self.mouse_checkbox = QCheckBox("Track Mouse Clicks with Screenshots")
+        self.mouse_checkbox = QCheckBox("Track Mouse Clicks")
+        self.mouse_and_screenshot_checkbox = QCheckBox("Track Mouse Clicks with Screenshots (Stucks on Clicks)")
         self.track_button = QPushButton("Start Tracking")
         self.track_button.setFixedWidth(int(self.screen_width / 10))
         self.track_button.clicked.connect(self.on_track_btn_click)
@@ -74,6 +75,7 @@ class ActivityTrackerGUI(QMainWindow):
         vBox.addWidget(self.screenshot_checkbox)
         vBox.addWidget(self.keyboard_checkbox)
         vBox.addWidget(self.mouse_checkbox)
+        vBox.addWidget(self.mouse_and_screenshot_checkbox)
         vBox.addWidget(self.track_button)
         vBox.setAlignment(self.track_button, Qt.AlignCenter)
         pass
@@ -86,6 +88,7 @@ class ActivityTrackerGUI(QMainWindow):
             self.screenshot_checkbox.setEnabled(False)
             self.keyboard_checkbox.setEnabled(False)
             self.mouse_checkbox.setEnabled(False)
+            self.mouse_and_screenshot_checkbox.setEnabled(False)
             self.browse_button.setEnabled(False)
             self.on_start_tracking()
         else:
@@ -95,6 +98,7 @@ class ActivityTrackerGUI(QMainWindow):
             self.screenshot_checkbox.setEnabled(True)
             self.keyboard_checkbox.setEnabled(True)
             self.mouse_checkbox.setEnabled(True)
+            self.mouse_and_screenshot_checkbox.setEnabled(True)
             self.browse_button.setEnabled(True)
             self.on_stop_tracking()
         pass
@@ -116,11 +120,17 @@ class ActivityTrackerGUI(QMainWindow):
         pass
 
     def on_mouse_click(self, x: int, y: int, button: mouse.Button, pressed: bool):
-        if self.track_activity and self.mouse_checkbox.isChecked() and pressed:
+        if self.track_activity and self.mouse_and_screenshot_checkbox.isChecked() and pressed:
             file_path = self.take_screenshot()
             text = "[" + self.get_timestamp_str() + "]={"
             text += "x:" + str(x) + ", y:" + str(y) + ", btn:" + button.name + "}, {"
             text += file_path + "}\n"
+            file = open("{}keylogger.log".format(self.activity_tracker_directory), 'a')
+            file.write(text)
+            file.close()
+        elif self.track_activity and self.mouse_checkbox.isChecked() and pressed:
+            text = "[" + self.get_timestamp_str() + "]={"
+            text += "x:" + str(x) + ", y:" + str(y) + ", btn:" + button.name + "} \n"
             file = open("{}keylogger.log".format(self.activity_tracker_directory), 'a')
             file.write(text)
             file.close()
@@ -175,7 +185,7 @@ class ActivityTrackerGUI(QMainWindow):
         if self.keyboard_checkbox.isChecked():
             keyboard_activity_tracker_thread = Thread(target=self.track_keyboard_activity, daemon=True)
             keyboard_activity_tracker_thread.start()
-        if self.mouse_checkbox.isChecked():
+        if self.mouse_and_screenshot_checkbox.isChecked() or self.mouse_checkbox.isChecked():
             mouse_activity_tracker_thread = Thread(target=self.track_mouse_activity, daemon=True)
             mouse_activity_tracker_thread.start()
         if self.screenshot_checkbox.isChecked():
